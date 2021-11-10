@@ -6,6 +6,7 @@ from messenger_backend.models import Conversation, Message
 from online_users import online_users
 from rest_framework.views import APIView
 from rest_framework.request import Request
+from django.utils import timezone
 
 
 class Conversations(APIView):
@@ -25,25 +26,26 @@ class Conversations(APIView):
                 Conversation.objects.filter(Q(user1=user_id) | Q(user2=user_id))
                 .prefetch_related(
                     Prefetch(
-                        "messages", queryset=Message.objects.order_by("-createdAt")
+                        "messages", queryset=Message.objects.only("createdAt").order_by("createdAt")
                     )
                 )
                 .all()
             )
-
+            
             conversations_response = []
 
             for convo in conversations:
                 convo_dict = {
                     "id": convo.id,
+                    "unreadCount": convo.messages.only("readAt", "senderId").exclude(senderId=user_id).filter(readAt=None).count(),
                     "messages": [
-                        message.to_dict(["id", "text", "senderId", "createdAt"])
+                        message.to_dict(["id", "text", "senderId", "createdAt", "readAt"])
                         for message in convo.messages.all()
                     ],
                 }
 
                 # set properties for notification count and latest message preview
-                convo_dict["latestMessageText"] = convo_dict["messages"][0]["text"]
+                convo_dict["latestMessageText"] = convo_dict["messages"][-1]["text"]
 
                 # set a property "otherUser" so that frontend will have easier access
                 user_fields = ["id", "username", "photoUrl"]
@@ -60,7 +62,7 @@ class Conversations(APIView):
 
                 conversations_response.append(convo_dict)
             conversations_response.sort(
-                key=lambda convo: convo["messages"][0]["createdAt"],
+                key=lambda convo: convo["messages"][-1]["createdAt"],
                 reverse=True,
             )
             return JsonResponse(
@@ -69,3 +71,21 @@ class Conversations(APIView):
             )
         except Exception as e:
             return HttpResponse(status=500)
+    def put(self, request:Request):
+        user = get_user(request)
+        user_id = user.id
+        if user.is_anonymous:
+                return HttpResponse(status=401)
+        body = request.data
+        conversationId = body.get("conversationId")
+        messageId = body.get("messageId")
+        # If we know the message ID do a simple look up of the message and update the readAt.
+        if messageId:
+            message = Message.objects.get(id=messageId)
+            message.readAt = timezone.now()
+            message.save()
+            return JsonResponse(conversationId, safe=False)
+        conversation = Conversation.objects.get(id=conversationId)
+        unread_messages_received = conversation.messages.exclude(senderId=user_id).filter(readAt=None)
+        unread_messages_received.update(readAt=timezone.now())
+        return JsonResponse(conversationId, safe=False)

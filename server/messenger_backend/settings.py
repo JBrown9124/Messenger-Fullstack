@@ -15,7 +15,7 @@ from pathlib import Path
 from dotenv import dotenv_values
 
 # Load environment variables from .env file
-env_vars = dotenv_values(".env")
+env_vars = dotenv_values("C:\\Users\\Jonathan\\Documents\\GitHub\\messenger-2874\\server\\.env")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

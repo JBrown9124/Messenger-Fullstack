@@ -5,7 +5,9 @@ import {
   addConversation,
   setNewMessage,
   setSearchedUsers,
+  clearUnreadCount,
 } from "../conversations";
+import setActiveChat from "../activeConversation";
 import { gotUser, setFetchingStatus } from "../user";
 
 axios.interceptors.request.use(async function (config) {
@@ -93,9 +95,9 @@ const sendMessage = (data, body) => {
 
 // message format to send: {recipientId, text, conversationId}
 // conversationId will be set to null if its a brand new conversation
-export const postMessage = (body) => (dispatch) => {
+export const postMessage = (body) => async (dispatch) => {
   try {
-    const data = saveMessage(body);
+    const data = await saveMessage(body);
 
     if (!body.conversationId) {
       dispatch(addConversation(body.recipientId, data.message));
@@ -113,6 +115,19 @@ export const searchUsers = (searchTerm) => async (dispatch) => {
   try {
     const { data } = await axios.get(`/api/users/${searchTerm}`);
     dispatch(setSearchedUsers(data));
+  } catch (error) {
+    console.error(error);
+  }
+};
+const saveReadConvo = async (body) => {
+  const { data } = await axios.put("/api/conversations", body);
+  return data;
+};
+
+export const updateReadConvo = (body) => async (dispatch) => {
+  try {
+    const data = await saveReadConvo(body);
+    dispatch(clearUnreadCount(data));
   } catch (error) {
     console.error(error);
   }
