@@ -13,9 +13,10 @@ export const addMessageToStore = (state, payload) => {
 
   return state.map((convo) => {
     if (convo.id === message.conversationId) {
-      convo.messages.push(message);
-      convo.latestMessageText = message.text;
-      return { ...convo };
+      const convoCopy = { ...convo };
+      convoCopy.messages.push(message);
+      convoCopy.latestMessageText = message.text;
+      return convoCopy;
     } else {
       return convo;
     }
@@ -69,21 +70,31 @@ export const addSearchedUsersToStore = (state, users) => {
 export const addNewConvoToStore = (state, recipientId, message) => {
   return state.map((convo) => {
     if (convo.otherUser.id === recipientId) {
-      convo.id = message.conversationId;
-      convo.messages.push(message);
-      convo.latestMessageText = message.text;
-      return { ...convo };
+      const convoCopy = { ...convo };
+      convoCopy.id = message.conversationId;
+      convoCopy.messages.push(message);
+      convoCopy.latestMessageText = message.text;
+      return convoCopy;
     } else {
       return convo;
     }
   });
 };
 
-export const removeUnreadConvoCountFromStore = (state, conversationId) => {
+export const removeUnreadConvoCountFromStore = (state, payload) => {
+  const { conversationId, newMessages } = payload;
   return state.map((convo) => {
     if (convo.id === conversationId) {
-      convo.unreadCount = 0;
-      return { ...convo };
+      const convoCopy = { ...convo };
+      convoCopy.messages.map((message) => {
+         newMessages.forEach((newMessage) => {
+          if (newMessage.id === message.id) {
+            message.readAt = newMessage.readAt;
+          }
+        });
+      });
+      convoCopy.unreadCount = 0;
+      return convoCopy;
     } else {
       return convo;
     }
@@ -92,8 +103,9 @@ export const removeUnreadConvoCountFromStore = (state, conversationId) => {
 export const addUnreadConvoCountToStore = (state, conversationId) => {
   return state.map((convo) => {
     if (convo.id === conversationId) {
-      convo.unreadCount += 1;
-      return { ...convo };
+      const convoCopy = { ...convo };
+      convoCopy.unreadCount += 1;
+      return convoCopy;
     } else {
       return convo;
     }

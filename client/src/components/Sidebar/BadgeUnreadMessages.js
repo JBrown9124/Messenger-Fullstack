@@ -22,7 +22,7 @@ const UnreadMessages = (props) => {
       <Badge
         classes={{ badge: `${classes.badge}` }}
         badgeContent={unreadCount}
-      ></Badge>
+      />
     </Box>
   );
 };

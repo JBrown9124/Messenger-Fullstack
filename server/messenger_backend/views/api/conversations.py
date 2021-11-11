@@ -2,7 +2,7 @@ from django.contrib.auth.middleware import get_user
 from django.db.models import Max, Q
 from django.db.models.query import Prefetch
 from django.http import HttpResponse, JsonResponse
-from messenger_backend.models import Conversation, Message
+from messenger_backend.models import Conversation, Message, User
 from online_users import online_users
 from rest_framework.views import APIView
 from rest_framework.request import Request
@@ -26,20 +26,28 @@ class Conversations(APIView):
                 Conversation.objects.filter(Q(user1=user_id) | Q(user2=user_id))
                 .prefetch_related(
                     Prefetch(
-                        "messages", queryset=Message.objects.only("createdAt").order_by("createdAt")
+                        "messages",
+                        queryset=Message.objects.only("createdAt").order_by(
+                            "createdAt"
+                        ),
                     )
                 )
                 .all()
             )
-            
+
             conversations_response = []
 
             for convo in conversations:
                 convo_dict = {
                     "id": convo.id,
-                    "unreadCount": convo.messages.only("readAt", "senderId").exclude(senderId=user_id).filter(readAt=None).count(),
+                    "unreadCount": convo.messages.only("readAt", "senderId")
+                    .exclude(senderId=user_id)
+                    .filter(readAt=None)
+                    .count(),
                     "messages": [
-                        message.to_dict(["id", "text", "senderId", "createdAt", "readAt"])
+                        message.to_dict(
+                            ["id", "text", "senderId", "createdAt", "readAt"]
+                        )
                         for message in convo.messages.all()
                     ],
                 }
@@ -71,21 +79,74 @@ class Conversations(APIView):
             )
         except Exception as e:
             return HttpResponse(status=500)
-    def put(self, request:Request):
-        user = get_user(request)
-        user_id = user.id
-        if user.is_anonymous:
+
+    def put(self, request: Request):
+        """Expects {conversationId, messageId } in body (messageId will be null if we are changing more than one message in a conversation).
+        Returns conversationId and messages or message ID and new readAt times"""
+        try:
+            user = get_user(request)
+            user_id = user.id
+            if user.is_anonymous:
                 return HttpResponse(status=401)
-        body = request.data
-        conversationId = body.get("conversationId")
-        messageId = body.get("messageId")
-        # If we know the message ID do a simple look up of the message and update the readAt.
-        if messageId:
-            message = Message.objects.get(id=messageId)
-            message.readAt = timezone.now()
-            message.save()
-            return JsonResponse(conversationId, safe=False)
-        conversation = Conversation.objects.get(id=conversationId)
-        unread_messages_received = conversation.messages.exclude(senderId=user_id).filter(readAt=None)
-        unread_messages_received.update(readAt=timezone.now())
-        return JsonResponse(conversationId, safe=False)
+
+            body = request.data
+
+            other_user_id = body.get("otherUserId")
+            other_user = User.get_by_id(other_user_id)
+            if other_user.is_anonymous:
+                return HttpResponse(status=401)
+
+            conversationId = body.get("conversationId")
+            messageId = body.get("messageId")
+
+            # If we know the message ID do a simple look up of the message and update the readAt.
+            if messageId:
+                message = Message.objects.get(id=messageId)
+                message_conversation_id = message.conversation_id
+
+                if message_conversation_id != conversationId:
+                    return HttpResponse(status=401)
+                message_sender_id = message.senderId
+                if other_user_id != message_sender_id:
+                    return HttpResponse(status=401)
+
+                message.readAt = timezone.now()
+                message.save()
+                newly_read_message = [message.to_dict()]
+                return JsonResponse(
+                    {"conversationId": conversationId, "messages": newly_read_message}
+                )
+
+            conversation = Conversation.objects.get(id=conversationId)
+
+            conversation_user1_id = conversation.user1.id
+            conversation_user2_id = conversation.user2.id
+            if user_id != conversation_user1_id and user_id != conversation_user2_id:
+                return HttpResponse(status=401)
+            if (
+                other_user_id != conversation_user1_id
+                and other_user_id != conversation_user2_id
+            ):
+                return HttpResponse(status=401)
+
+            unread_messages_received = conversation.messages.exclude(
+                senderId=user_id
+            ).filter(readAt=None)
+
+            newly_read_messages_response = []
+
+            for unread_message in unread_messages_received:
+                unread_message.readAt = timezone.now()
+                unread_message.save()
+                newly_read_messages_response.append(
+                    unread_message.to_dict(["id", "readAt"])
+                )
+
+            return JsonResponse(
+                {
+                    "conversationId": conversationId,
+                    "messages": newly_read_messages_response,
+                }
+            )
+        except Exception as e:
+            return HttpResponse(status=500)

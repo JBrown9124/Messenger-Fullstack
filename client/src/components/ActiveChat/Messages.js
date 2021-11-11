@@ -6,15 +6,36 @@ import moment from "moment";
 const Messages = (props) => {
   const { messages, otherUser, userId } = props;
 
+  const getLastReceivedMessageId = () => {
+    const receivedReadMessages = messages.filter((message) => {
+      return userId === message.senderId && message.readAt !== null;
+    });
+    if (receivedReadMessages.length > 0) {
+      return receivedReadMessages.at(-1).id;
+    }
+    return "None Found";
+  };
+
   return (
     <Box>
       {messages.map((message) => {
+        const isLastMessageRead = getLastReceivedMessageId() === message.id;
         const time = moment(message.createdAt).format("h:mm");
-
         return message.senderId === userId ? (
-          <SenderBubble key={message.id} text={message.text} time={time} />
+          <SenderBubble
+            key={message.id}
+            otherUser={otherUser}
+            isRead={isLastMessageRead}
+            text={message.text}
+            time={time}
+          />
         ) : (
-          <OtherUserBubble key={message.id} text={message.text} time={time} otherUser={otherUser} />
+          <OtherUserBubble
+            key={message.id}
+            text={message.text}
+            time={time}
+            otherUser={otherUser}
+          />
         );
       })}
     </Box>

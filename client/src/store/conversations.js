@@ -70,8 +70,10 @@ export const addConversation = (recipientId, newMessage) => {
     payload: { recipientId, newMessage },
   };
 };
-export const clearUnreadCount = (conversationId) => {
-  return { type: CLEAR_UNREAD_COUNT, conversationId };
+export const clearUnreadCount = (conversationId, newMessages) => {
+  return { type: CLEAR_UNREAD_COUNT,
+  payload: { conversationId, newMessages}
+  };
 };
 
 export const addUnreadCount = (conversationId) => {
@@ -104,7 +106,7 @@ const reducer = (state = [], action) => {
     case CLEAR_UNREAD_COUNT:
       return removeUnreadConvoCountFromStore(
         state,
-        action.conversationId
+        action.payload
       );
     case ADD_UNREAD_COUNT:
       return addUnreadConvoCountToStore(state, action.conversationId);

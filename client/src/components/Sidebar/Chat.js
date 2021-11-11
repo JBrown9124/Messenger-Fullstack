@@ -26,7 +26,7 @@ const Chat = (props) => {
 
   const handleClick = async (conversation) => {
     if (conversation.unreadCount > 0) {
-      const reqBody = {conversationId: conversation.id, messageId: null}
+      const reqBody = {conversationId: conversation.id, messageId: null, otherUserId:otherUser.id}
       await props.updateReadConvo(reqBody);
     }
     await props.setActiveChat(otherUser.id);
