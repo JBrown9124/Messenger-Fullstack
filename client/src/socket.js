@@ -4,7 +4,8 @@ import {
   setNewMessage,
   removeOfflineUser,
   addOnlineUser,
-  addUnreadCount, clearUnreadCount,
+  addUnreadCount,
+  clearUnreadCount,
 } from "./store/conversations";
 import { updateReadConvo } from "./store/utils/thunkCreators";
 
@@ -33,7 +34,11 @@ socket.on("connect", () => {
     is not currently active. Therefore we add one to the unread count.
     */
     if (myStore.activeConversation === message.senderId) {
-      const reqBody = {conversationId: message.conversationId, messageId:message.id, otherUserId: message.senderId}
+      const reqBody = {
+        conversationId: message.conversationId,
+        messageId: message.id,
+        otherUserId: message.senderId,
+      };
       store.dispatch(updateReadConvo(reqBody));
     } else {
       store.dispatch(addUnreadCount(message.conversationId));

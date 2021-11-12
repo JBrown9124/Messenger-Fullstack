@@ -38,12 +38,24 @@ class Conversations(APIView):
             conversations_response = []
 
             for convo in conversations:
+                # A error occurs when there are no messages sent by the user (when there isn't anything to return from .filter()).
+                try:
+                    lastMessageRead = (
+                        convo.messages.only("id")
+                        .filter(senderId=user_id)
+                        .latest("readAt")
+                        .to_dict(["id"])
+                    )
+                except:
+                    lastMessageRead = {"id": None}
+                other_user_id = convo.user2.id
                 convo_dict = {
                     "id": convo.id,
                     "unreadCount": convo.messages.only("readAt", "senderId")
                     .exclude(senderId=user_id)
                     .filter(readAt=None)
                     .count(),
+                    "lastMessageRead": lastMessageRead,
                     "messages": [
                         message.to_dict(
                             ["id", "text", "senderId", "createdAt", "readAt"]
@@ -90,12 +102,7 @@ class Conversations(APIView):
                 return HttpResponse(status=401)
 
             body = request.data
-
             other_user_id = body.get("otherUserId")
-            other_user = User.get_by_id(other_user_id)
-            if other_user.is_anonymous:
-                return HttpResponse(status=401)
-
             conversationId = body.get("conversationId")
             messageId = body.get("messageId")
 
@@ -105,14 +112,14 @@ class Conversations(APIView):
                 message_conversation_id = message.conversation_id
 
                 if message_conversation_id != conversationId:
-                    return HttpResponse(status=401)
+                    return HttpResponse(status=500)
                 message_sender_id = message.senderId
                 if other_user_id != message_sender_id:
-                    return HttpResponse(status=401)
+                    return HttpResponse(status=500)
 
                 message.readAt = timezone.now()
                 message.save()
-                newly_read_message = [message.to_dict()]
+                newly_read_message = [message.to_dict(["id", "senderId", "readAt"])]
                 return JsonResponse(
                     {"conversationId": conversationId, "messages": newly_read_message}
                 )
@@ -122,12 +129,12 @@ class Conversations(APIView):
             conversation_user1_id = conversation.user1.id
             conversation_user2_id = conversation.user2.id
             if user_id != conversation_user1_id and user_id != conversation_user2_id:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
             if (
                 other_user_id != conversation_user1_id
                 and other_user_id != conversation_user2_id
             ):
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
 
             unread_messages_received = conversation.messages.exclude(
                 senderId=user_id
@@ -139,7 +146,7 @@ class Conversations(APIView):
                 unread_message.readAt = timezone.now()
                 unread_message.save()
                 newly_read_messages_response.append(
-                    unread_message.to_dict(["id", "readAt"])
+                    unread_message.to_dict(["id", "senderId", "readAt"])
                 )
 
             return JsonResponse(

@@ -26,11 +26,16 @@ const Chat = (props) => {
 
   const handleClick = async (conversation) => {
     if (conversation.unreadCount > 0) {
-      const reqBody = {conversationId: conversation.id, messageId: null, otherUserId:otherUser.id}
+      const reqBody = {
+        conversationId: conversation.id,
+        messageId: null,
+        otherUserId: otherUser.id,
+      };
       await props.updateReadConvo(reqBody);
     }
+
     await props.setActiveChat(otherUser.id);
-    };
+  };
 
   return (
     <Box onClick={() => handleClick(conversation)} className={classes.root}>
@@ -40,7 +45,10 @@ const Chat = (props) => {
         online={otherUser.online}
         sidebar={true}
       />
-      <ChatContent isUnread={conversation.unreadCount > 0} conversation={conversation} />
+      <ChatContent
+        isUnread={conversation.unreadCount > 0}
+        conversation={conversation}
+      />
       <BadgeUnreadMessages unreadCount={conversation.unreadCount} />
     </Box>
   );

@@ -9,10 +9,10 @@ const useStyles = makeStyles((theme) => ({
     marginLeft: 20,
     flexGrow: 1,
   },
-  previewText: (props) => ({
+  previewText: (isUnread) => ({
     fontSize: 12,
-    fontWeight: props.fontWeight,
-    color: props.color,
+    color: isUnread ? "black" : "#9CADC8",
+    fontWeight: isUnread ? 600 : 200,
     letterSpacing: -0.17,
   }),
   username: {
@@ -24,11 +24,7 @@ const useStyles = makeStyles((theme) => ({
 const ChatContent = (props) => {
   const { conversation, isUnread } = props;
   const { latestMessageText, otherUser } = conversation;
-  const styleProps = {
-    color: isUnread ? "black" : "#9CADC8",
-    fontWeight: isUnread ? 600 : 200,
-  };
-  const classes = useStyles(styleProps);
+  const classes = useStyles(isUnread);
 
   return (
     <Box className={classes.root}>
