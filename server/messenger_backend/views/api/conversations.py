@@ -26,14 +26,10 @@ class Conversations(APIView):
                 Conversation.objects.filter(Q(user1=user_id) | Q(user2=user_id))
                 .prefetch_related(
                     Prefetch(
-
                         "messages",
                         queryset=Message.objects.only("createdAt").order_by(
                             "createdAt"
                         ),
-
-                        "messages", queryset=Message.objects.only("createdAt").order_by("createdAt")
-
                     )
                 )
                 .all()
@@ -88,7 +84,7 @@ class Conversations(APIView):
             conversations_response.sort(
                 key=lambda convo: convo["messages"][-1]["createdAt"],
                 reverse=True,
-            )    
+            )
             return JsonResponse(
                 conversations_response,
                 safe=False,
