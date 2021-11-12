@@ -9,22 +9,22 @@ const useStyles = makeStyles((theme) => ({
     marginLeft: 20,
     flexGrow: 1,
   },
+  previewText: (isUnread) => ({
+    fontSize: 12,
+    color: isUnread ? "black" : "#9CADC8",
+    fontWeight: isUnread ? 600 : 200,
+    letterSpacing: -0.17,
+  }),
   username: {
     fontWeight: "bold",
     letterSpacing: -0.2,
   },
-  previewText: {
-    fontSize: 12,
-    color: "#9CADC8",
-    letterSpacing: -0.17,
-  },
 }));
 
 const ChatContent = (props) => {
-  const classes = useStyles();
-
-  const { conversation } = props;
+  const { conversation, isUnread } = props;
   const { latestMessageText, otherUser } = conversation;
+  const classes = useStyles(isUnread);
 
   return (
     <Box className={classes.root}>

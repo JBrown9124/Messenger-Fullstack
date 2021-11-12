@@ -1,10 +1,10 @@
 import React from "react";
 import { Box } from "@material-ui/core";
-import { BadgeAvatar, ChatContent } from "../Sidebar";
+import { BadgeAvatar, ChatContent, BadgeUnreadMessages } from "../Sidebar";
 import { makeStyles } from "@material-ui/core/styles";
 import { setActiveChat } from "../../store/activeConversation";
 import { connect } from "react-redux";
-
+import { updateReadConvo } from "../../store/utils/thunkCreators";
 const useStyles = makeStyles((theme) => ({
   root: {
     borderRadius: 8,
@@ -14,9 +14,9 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     "&:hover": {
-      cursor: "grab"
-    }
-  }
+      cursor: "grab",
+    },
+  },
 }));
 
 const Chat = (props) => {
@@ -25,7 +25,16 @@ const Chat = (props) => {
   const { otherUser } = conversation;
 
   const handleClick = async (conversation) => {
-    await props.setActiveChat(conversation.otherUser.username);
+    if (conversation.unreadCount > 0) {
+      const reqBody = {
+        conversationId: conversation.id,
+        messageId: null,
+        otherUserId: otherUser.id,
+      };
+      await props.updateReadConvo(reqBody);
+    }
+
+    await props.setActiveChat(otherUser.id);
   };
 
   return (
@@ -36,16 +45,23 @@ const Chat = (props) => {
         online={otherUser.online}
         sidebar={true}
       />
-      <ChatContent conversation={conversation} />
+      <ChatContent
+        isUnread={conversation.unreadCount > 0}
+        conversation={conversation}
+      />
+      <BadgeUnreadMessages unreadCount={conversation.unreadCount} />
     </Box>
   );
 };
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    setActiveChat: (id) => {
-      dispatch(setActiveChat(id));
-    }
+    updateReadConvo: (id) => {
+      dispatch(updateReadConvo(id));
+    },
+    setActiveChat: (conversation) => {
+      dispatch(setActiveChat(conversation));
+    },
   };
 };
 

@@ -5,7 +5,9 @@ import {
   addConversation,
   setNewMessage,
   setSearchedUsers,
+  clearUnreadCount,
 } from "../conversations";
+
 import { gotUser, setFetchingStatus } from "../user";
 
 axios.interceptors.request.use(async function (config) {
@@ -112,6 +114,28 @@ export const searchUsers = (searchTerm) => async (dispatch) => {
   try {
     const { data } = await axios.get(`/api/users/${searchTerm}`);
     dispatch(setSearchedUsers(data));
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const saveReadConvo = async (body) => {
+  const { data } = await axios.put("/api/conversations", body);
+  return data;
+};
+
+const sendReadStatus = (conversationId, messages) => {
+  socket.emit("read-status", {
+    conversationId: conversationId,
+    messages: messages,
+  });
+};
+
+export const updateReadConvo = (body) => async (dispatch) => {
+  try {
+    const data = await saveReadConvo(body);
+    dispatch(clearUnreadCount(data.conversationId, data.messages));
+    sendReadStatus(data.conversationId, data.messages);
   } catch (error) {
     console.error(error);
   }

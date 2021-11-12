@@ -1,0 +1,4 @@
+{
+    "python.pythonPath": "c:\\Users\\Jonathan\\Documents\\GitHub\\messenger-2874\\server\\.venv\\Scripts\\python.exe",
+    "python.formatting.provider": "black"
+}
